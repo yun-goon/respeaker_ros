@@ -1,113 +1,187 @@
-respeaker_ros
-=============
+# respeaker_ros
 
-A ROS Package for Respeaker Mic Array
+ROS 2 `ament_python` package for ReSpeaker Mic Array.
 
+## Overview
 
-## Supported Devices
+This package provides:
 
-- [Respeaker Mic Array v2.0](http://wiki.seeedstudio.com/ReSpeaker_Mic_Array_v2.0/)
+- ReSpeaker USB device initialization
+- multi-channel audio capture
+- voice activity detection and direction of arrival publishing
+- speech segment publishing
+- optional speech-to-text using `SpeechRecognition`
+- optional `.wav` saving for captured speech segments
 
-    ![Respeaker Mic Array v2.0](https://github.com/SeeedDocument/ReSpeaker_Mic_Array_V2/raw/master/img/Hardware%20Overview.png)
+## Supported Device
 
-## Preparation
+- [ReSpeaker Mic Array v2.0](http://wiki.seeedstudio.com/ReSpeaker_Mic_Array_v2.0/)
 
-1. Install this package
+## Package Structure
 
-    ```bash
-    mkdir -p ~/catkin_ws/src && ~/catkin_ws/src
-    git clone https://github.com/furushchev/respeaker_ros.git
-    cd ~/catkin_ws
-    source /opt/ros/kinetic/setup.bash
-    rosdep install --from-paths src -i -r -n -y
-    catkin config --init
-    catkin build respeaker_ros
-    source ~/catkin_ws/devel/setup.bash
-    ```
+- `respeaker_node`: hardware access, VAD, DoA, audio publishing
+- `speech_to_text`: STT node for `/speech_audio`
+- `respeaker_gencfg`: dump current device parameters to YAML
+- `launch/respeaker_launch.py`: default launch entrypoint
 
-1. Register respeaker udev rules
+## Requirements
 
-    Normally, we cannot access USB device without permission from user space.
-    Using `udev`, we can give the right permission on only respeaker device automatically.
+System packages:
 
-    Please run the command as followings to install setting file:
+```bash
+sudo apt install -y portaudio19-dev
+```
 
-    ```bash
-    roscd respeaker_ros
-    sudo cp -f $(rospack find respeaker_ros)/config/60-respeaker.rules /etc/udev/rules.d/60-respeaker.rules
-    sudo systemctl restart udev
-    ```
+Python packages:
 
-    And then re-connect the device.
+```bash
+pip install -r requirements.txt
+```
 
-1. Install python requirements
+## Build
 
-    ```bash
-    roscd respeaker_ros
-    sudo pip install -r requirements.txt
-    ```
+```bash
+cd ~/ros2_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --packages-select respeaker_ros
+source install/setup.bash
+```
 
-1. Update firmware
+## USB Permission Setup
 
-    ```bash
-    git clone https://github.com/respeaker/usb_4_mic_array.git
-    cd usb_4_mic_array
-    sudo python dfu.py --download 6_channels_firmware.bin  # The 6 channels version 
-    ```
+Install the udev rule:
 
-## How to use
+```bash
+sudo cp config/60-respeaker.rules /etc/udev/rules.d/60-respeaker.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
 
-1. Run executables
+Reconnect the device after applying the rule.
 
-    ```bash
-    roslaunch respeaker_ros respeaker.launch
-    rostopic echo /sound_direction     # Result of DoA
-    rostopic echo /sound_localization  # Result of DoA as Pose
-    rostopic echo /is_speeching        # Result of VAD
-    rostopic echo /audio               # Raw audio
-    rostopic echo /speech_audio        # Audio data while speeching
-    ```
+If you still get `usb.core.USBError: [Errno 13] Access denied`, the problem is usually USB permission setup.
 
-    You can also set various parameters via `dynamic_reconfigure`.
+## Run
 
-    ```bash
-    sudo apt install ros-kinetic-rqt-reconfigure  # Install if not
-    rosrun rqt_reconfigure rqt_reconfigure
-    ```
+Launch the full stack:
 
-    To set LED color, publish desired color:
+```bash
+ros2 launch respeaker_ros respeaker_launch.py
+```
 
-    ```bash
-    rostopic pub /status_led std_msgs/ColorRGBA "r: 0.0
-    g: 0.0
-    b: 1.0
-    a: 0.3"
-    ```
+Run nodes individually:
 
-## Use cases
+```bash
+ros2 run respeaker_ros respeaker_node
+ros2 run respeaker_ros speech_to_text
+```
 
-### Voice Recognition
+## Main Topics
 
-- [ros_speech_recognition](https://github.com/jsk-ros-pkg/jsk_3rdparty/tree/master/ros_speech_recognition)
-- [julius_ros](http://wiki.ros.org/julius_ros)
+```bash
+ros2 topic echo /is_speeching
+ros2 topic echo /sound_direction
+ros2 topic echo /sound_localization
+ros2 topic echo /audio
+ros2 topic echo /speech_audio
+ros2 topic echo /speech_to_text
+```
 
-## Notes
+Topic summary:
 
-The configuration file for `dynamic_reconfigure` in this package is created automatically by reading the parameters from devices.
-Though it will be rare case, the configuration file can be updated as followings:
+- `/audio`: main channel audio as `std_msgs/msg/UInt8MultiArray`
+- `/speech_audio`: speech-only audio segments as `std_msgs/msg/UInt8MultiArray`
+- `/speech_to_text`: recognized text as `std_msgs/msg/String`
+- `/sound_direction`: DoA in degrees
+- `/sound_localization`: DoA as `geometry_msgs/msg/PoseStamped`
+- `/is_speeching`: VAD state
 
-1. Connect the device to the computer.
-1. Run the generator script.
+## Speech-to-Text
 
-    ```bash
-    rosrun  respeaker_ros respeaker_gencfg.py
-    ```
-1. You will see the updated configuration file at `$(rospack find respeaker_ros)/cfg/Respeaker.cfg`.
+The `speech_to_text` node subscribes to `/speech_audio` and calls `recognize_google(...)` through the Python `SpeechRecognition` package.
 
+Notes:
 
-## Author
+- internet access is required for Google recognition
+- recognition success is published on `/speech_to_text`
+- default recognition order is Korean first, then English fallback
+- if recognition fails, `.wav` files can be used to inspect the actual input audio
 
-Yuki Furuta <<furushchev@jsk.imi.i.u-tokyo.ac.jp>>
+Check recognized text:
+
+```bash
+ros2 topic echo /speech_to_text
+```
+
+## WAV Saving
+
+By default, speech segments are saved to:
+
+```bash
+/tmp/respeaker_audio
+```
+
+Examples:
+
+```bash
+ls /tmp/respeaker_audio
+aplay "$(ls -t /tmp/respeaker_audio/*.wav | head -n 1)"
+```
+
+Behavior:
+
+- normal speech segments are saved as `speech_*.wav`
+- if you stop the launch with `Ctrl+C` while speaking, a partial segment is saved as `speech_shutdown_*.wav`
+
+## Launch Arguments
+
+Show all launch arguments:
+
+```bash
+ros2 launch respeaker_ros respeaker_launch.py --show-args
+```
+
+Common examples:
+
+```bash
+ros2 launch respeaker_ros respeaker_launch.py audio_output_dir:=/home/$USER/respeaker_audio
+ros2 launch respeaker_ros respeaker_launch.py save_audio:=false
+ros2 launch respeaker_ros respeaker_launch.py main_channel:=0
+```
+
+Default speech-to-text languages:
+
+```text
+ko-KR
+en-US
+```
+
+## Device Parameter Dump
+
+Generate a YAML file from current device parameters:
+
+```bash
+ros2 run respeaker_ros respeaker_gencfg /tmp/respeaker_params.yaml
+```
+
+Then load it:
+
+```bash
+ros2 run respeaker_ros respeaker_node --ros-args --params-file /tmp/respeaker_params.yaml
+```
+
+## LED Control
+
+```bash
+ros2 topic pub /status_led std_msgs/msg/ColorRGBA "{r: 0.0, g: 0.0, b: 1.0, a: 0.3}"
+```
+
+## Known Limitations
+
+- `speech_to_text` currently logs failures, but successful recognition is mainly observed through `/speech_to_text`
+- saved `.wav` files accumulate until removed manually
+- `static_transform_publisher` still uses old-style arguments and prints a deprecation warning
+- external package `angles` may print `SyntaxWarning` on Python 3.12
 
 ## License
 

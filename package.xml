@@ -1,24 +1,25 @@
 <?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>respeaker_ros</name>
   <version>0.0.0</version>
-  <description>The respeaker_ros package</description>
+  <description>ROS2 package for Respeaker Mic Array</description>
   <maintainer email="furushchev@jsk.imi.i.u-tokyo.ac.jp">Yuki Furuta</maintainer>
   <license>Apache</license>
   <author email="furushchev@jsk.imi.i.u-tokyo.ac.jp">Yuki Furuta</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
-  <depend condition="$ROS_PYTHON_VERSION == 3">catkin_virtualenv</depend>
-  <depend>angles</depend>
-  <depend>audio_common_msgs</depend>
-  <depend>dynamic_reconfigure</depend>
-  <depend>geometry_msgs</depend>
-  <depend>portaudio19-dev</depend>
-  <depend>python-pyaudio</depend>
-  <depend>speech_recognition_msgs</depend>
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <depend>rclpy</depend>
   <depend>std_msgs</depend>
-  <depend>tf</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>angles</depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
   <export>
-    <pip_requirements>requirements.txt</pip_requirements>
+    <build_type>ament_python</build_type>
   </export>
 </package>

@@ -1,41 +1,27 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Author: Yuki Furuta <furushchev@jsk.imi.i.u-tokyo.ac.jp>
-
+# Author: Yuki Furuta (ROS2 port)
 
 import unittest
 
 
-
 class TestInstalled(unittest.TestCase):
-    def test_installed(self):
+    def test_ros2_and_std_msgs(self):
+        """Check that ROS2 runtime dependencies are importable."""
+        import rclpy
+        from geometry_msgs.msg import PoseStamped
+        from std_msgs.msg import Bool, Int32, ColorRGBA, String, UInt8MultiArray
+        self.assertTrue(True, 'ROS2 runtime dependencies are installed')
+
+    def test_respeaker_params_defined(self):
+        """Check that respeaker_node exposes PARAMETERS for gencfg (skip if hardware deps missing)."""
         try:
-            import angles
-            from contextlib import contextmanager
-            import usb.core
-            import usb.util
-            import pyaudio
-            import math
-            import numpy as np
-            import tf.transformations as T
-            import os
-            import rospy
-            import struct
-            import sys
-            import time
-            from audio_common_msgs.msg import AudioData
-            from geometry_msgs.msg import PoseStamped
-            from std_msgs.msg import Bool, Int32, ColorRGBA
-            from dynamic_reconfigure.server import Server
-            try:
-                from pixel_ring import usb_pixel_ring_v2
-            except IOError as e:
-                pass
-            self.assertTrue(True, 'All modules are installed')
+            from respeaker_ros import respeaker_node as m
         except ImportError:
-            self.fail()
+            self.skipTest('respeaker_node requires pyusb/pyaudio; skipping')
+        self.assertIn('DOAANGLE', m.PARAMETERS)
+        self.assertIn('STATNOISEONOFF', m.RESPEAKER_RW_PARAMS)
 
 
 if __name__ == '__main__':
-    import rostest
-    rostest.rosrun('respeaker_ros', 'test_installed', TestInstalled)
+    unittest.main()
