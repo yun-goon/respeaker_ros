@@ -31,7 +31,7 @@ class SpeechToText(Node):
             self.declare_parameter('fallback_languages', ['en-US']).value)
         self.offline_model_path = self.declare_parameter('offline_model_path', '').value
         self.offline_fallback_model_paths = list(
-            self.declare_parameter('offline_fallback_model_paths', []).value)
+            self.declare_parameter('offline_fallback_model_paths', ['']).value)
         self.self_cancellation = self.declare_parameter('self_cancellation', True).value
         self.tts_tolerance = self.declare_parameter('tts_tolerance', 1.0).value
         self.save_audio = self.declare_parameter('save_audio', True).value
