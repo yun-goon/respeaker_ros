@@ -15,8 +15,11 @@ def generate_launch_description():
         DeclareLaunchArgument('update_rate', default_value='10.0'),
         DeclareLaunchArgument('main_channel', default_value='0'),
         DeclareLaunchArgument('suppress_pyaudio_error', default_value='true'),
+        DeclareLaunchArgument('reset_device', default_value='false'),
         DeclareLaunchArgument('save_audio', default_value='true'),
         DeclareLaunchArgument('audio_output_dir', default_value='/tmp/respeaker_audio'),
+        DeclareLaunchArgument('stt_backend', default_value='google'),
+        DeclareLaunchArgument('offline_model_path', default_value=''),
 
         Node(
             package='respeaker_ros',
@@ -30,6 +33,7 @@ def generate_launch_description():
                 'update_rate': LaunchConfiguration('update_rate'),
                 'main_channel': LaunchConfiguration('main_channel'),
                 'suppress_pyaudio_error': LaunchConfiguration('suppress_pyaudio_error'),
+                'reset_device': LaunchConfiguration('reset_device'),
                 'save_audio': LaunchConfiguration('save_audio'),
                 'audio_output_dir': LaunchConfiguration('audio_output_dir'),
             }],
@@ -45,8 +49,11 @@ def generate_launch_description():
             executable='speech_to_text',
             name='speech_to_text',
             parameters=[{
+                'stt_backend': LaunchConfiguration('stt_backend'),
                 'language': 'ko-KR',
                 'fallback_languages': ['en-US'],
+                'offline_model_path': LaunchConfiguration('offline_model_path'),
+                'offline_fallback_model_paths': [''],
                 'self_cancellation': True,
                 'tts_tolerance': 0.5,
                 'save_audio': LaunchConfiguration('save_audio'),

@@ -17,8 +17,8 @@ class TestInstalled(unittest.TestCase):
         """Check that respeaker_node exposes PARAMETERS for gencfg (skip if hardware deps missing)."""
         try:
             from respeaker_ros import respeaker_node as m
-        except ImportError:
-            self.skipTest('respeaker_node requires pyusb/pyaudio; skipping')
+        except (ImportError, RuntimeError, OSError):
+            self.skipTest('respeaker_node requires hardware-specific dependencies; skipping')
         self.assertIn('DOAANGLE', m.PARAMETERS)
         self.assertIn('STATNOISEONOFF', m.RESPEAKER_RW_PARAMS)
 

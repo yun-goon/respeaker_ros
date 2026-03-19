@@ -126,16 +126,19 @@ class RespeakerInterface(object):
     PRODUCT_ID = 0x0018
     TIMEOUT = 100000
 
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, reset_device=False):
         self._logger = logger or rclpy.logging.get_logger('respeaker_interface')
         self.dev = usb.core.find(idVendor=self.VENDOR_ID, idProduct=self.PRODUCT_ID)
         if not self.dev:
             raise RuntimeError("Failed to find Respeaker device")
         self._logger.info("Initializing Respeaker device")
-        self.dev.reset()
+        if reset_device:
+            self._logger.info("Resetting ReSpeaker USB device")
+            self.dev.reset()
         self.pixel_ring = usb_pixel_ring_v2.PixelRing(self.dev)
         self.set_led_think()
-        time.sleep(10)
+        if reset_device:
+            time.sleep(10)
         self.set_led_trace()
         self._logger.info("Respeaker device initialized (Version: %s)" % self.version)
 
@@ -328,6 +331,7 @@ class RespeakerNode(Node):
         self.speech_min_duration = self.declare_parameter('speech_min_duration', 0.1).value
         self.main_channel = self.declare_parameter('main_channel', 0).value
         suppress_pyaudio_error = self.declare_parameter('suppress_pyaudio_error', True).value
+        reset_device = self.declare_parameter('reset_device', False).value
         self.save_audio = self.declare_parameter('save_audio', True).value
         self.audio_output_dir = Path(
             self.declare_parameter('audio_output_dir', '/tmp/respeaker_audio').value)
@@ -336,7 +340,7 @@ class RespeakerNode(Node):
         if self.save_audio:
             self.audio_output_dir.mkdir(parents=True, exist_ok=True)
 
-        self.respeaker = RespeakerInterface(self.get_logger())
+        self.respeaker = RespeakerInterface(self.get_logger(), reset_device=reset_device)
         self.respeaker_audio = RespeakerAudio(self.on_audio, suppress_error=suppress_pyaudio_error, logger=self.get_logger())
 
         self.speech_audio_buffer = b''

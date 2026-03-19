@@ -7,3 +7,5 @@ PyAudio>=0.2.8
 SpeechRecognition>=3.8.0
 pyusb>=1.0.0
 pixel-ring>=0.1.0
+# Optional offline STT backend:
+vosk

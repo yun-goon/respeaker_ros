@@ -29,13 +29,19 @@ This package provides:
 System packages:
 
 ```bash
-sudo apt install -y portaudio19-dev
+sudo apt install -y portaudio19-dev flac
 ```
 
 Python packages:
 
 ```bash
 pip install -r requirements.txt
+```
+
+Optional offline STT:
+
+```bash
+pip install vosk
 ```
 
 ## Build
@@ -69,6 +75,8 @@ Launch the full stack:
 ros2 launch respeaker_ros respeaker_launch.py
 ```
 
+The default launch does not reset the USB device. This helps preserve system input volume settings that may otherwise be reset when the device reconnects.
+
 Run nodes individually:
 
 ```bash
@@ -98,11 +106,13 @@ Topic summary:
 
 ## Speech-to-Text
 
-The `speech_to_text` node subscribes to `/speech_audio` and calls `recognize_google(...)` through the Python `SpeechRecognition` package.
+The `speech_to_text` node can use either online Google STT or offline Vosk.
 
 Notes:
 
+- the `flac` command line tool must be installed because `SpeechRecognition` uses it for Google STT requests
 - internet access is required for Google recognition
+- offline recognition is available through `vosk`
 - recognition success is published on `/speech_to_text`
 - default recognition order is Korean first, then English fallback
 - if recognition fails, `.wav` files can be used to inspect the actual input audio
@@ -112,6 +122,16 @@ Check recognized text:
 ```bash
 ros2 topic echo /speech_to_text
 ```
+
+Backend examples:
+
+```bash
+ros2 launch respeaker_ros respeaker_launch.py stt_backend:=google
+ros2 launch respeaker_ros respeaker_launch.py stt_backend:=auto offline_model_path:=/path/to/vosk-model-small-ko-0.22
+ros2 launch respeaker_ros respeaker_launch.py stt_backend:=vosk offline_model_path:=/path/to/vosk-model-small-ko-0.22
+```
+
+For Korean + English offline fallback, provide the primary Korean model as `offline_model_path` and set the English fallback model in code or parameters if needed.
 
 ## WAV Saving
 
@@ -147,6 +167,8 @@ Common examples:
 ros2 launch respeaker_ros respeaker_launch.py audio_output_dir:=/home/$USER/respeaker_audio
 ros2 launch respeaker_ros respeaker_launch.py save_audio:=false
 ros2 launch respeaker_ros respeaker_launch.py main_channel:=0
+ros2 launch respeaker_ros respeaker_launch.py reset_device:=true
+ros2 launch respeaker_ros respeaker_launch.py stt_backend:=auto offline_model_path:=/path/to/vosk-model
 ```
 
 Default speech-to-text languages:
@@ -182,6 +204,7 @@ ros2 topic pub /status_led std_msgs/msg/ColorRGBA "{r: 0.0, g: 0.0, b: 1.0, a: 0
 - saved `.wav` files accumulate until removed manually
 - `static_transform_publisher` still uses old-style arguments and prints a deprecation warning
 - external package `angles` may print `SyntaxWarning` on Python 3.12
+- offline Vosk recognition requires a separately downloaded model directory
 
 ## License
 
